@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My GitHub Apps Dashboard</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 2rem;
+            background-color: #f6f8fa;
+            color: #24292f;
+        }
+        h1 {
+            border-bottom: 1px solid #d0d7de;
+            padding-bottom: 0.5rem;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+        .card {
+            background: #ffffff;
+            border: 1px solid #d0d7de;
+            border-radius: 6px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        .card h3 {
+            margin-top: 0;
+            color: #0969da;
+            text-transform: capitalize;
+        }
+        .card p {
+            font-size: 0.9rem;
+            color: #57606a;
+            flex-grow: 1;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #2da44e;
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+        .btn:hover {
+            background-color: #2c974b;
+        }
+        .loading {
+            grid-column: 1 / -1;
+            text-align: center;
+            font-style: italic;
+            color: #57606a;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>My Web Apps & Projects</h1>
+    <p>A live, automated directory of my deployed GitHub Pages applications.</p>
+
+    <div class="grid" id="apps-grid">
+        <div class="loading">Fetching deployed applications...</div>
+    </div>
+
+    <script>
+        // 1. CONFIGURATION: Put your exact GitHub username here
+        const GITHUB_USERNAME = 'jamesmittlerii'; 
+
+        async function fetchGitHubApps() {
+            const grid = document.getElementById('apps-grid');
+            
+            try {
+                // Fetch all public repositories for the user
+                const response = await fetch(`https://api.github.com/users/${GITHUB_USERNAME}/repos?sort=updated&per_page=100`);
+                
+                if (!response.ok) throw new Error('Failed to fetch repositories');
+                
+                const repos = await response.json();
+                
+                // 2. FILTER: Only keep repos that have GitHub Pages turned on 
+                // AND ignore the root landing page repo itself
+                const appRepos = repos.filter(repo => 
+                    repo.has_pages && 
+                    repo.name.toLowerCase() !== `${GITHUB_USERNAME}.toLowerCase().github.io`
+                );
+
+                // Clear the loading message
+                grid.innerHTML = '';
+
+                if (appRepos.length === 0) {
+                    grid.innerHTML = '<div class="loading">No active GitHub Pages apps found. Make sure Pages is enabled in your project settings!</div>';
+                    return;
+                }
+
+                // 3. RENDER: Build a card for each application
+                appRepos.forEach(repo => {
+                    // Reconstruct the clean, public deployment URL
+                    const appUrl = `https://${GITHUB_USERNAME}.github.io/${repo.name}/`;
+                    
+                    // Replace hyphens/underscores with spaces for a cleaner title
+                    const cleanTitle = repo.name.replace(/[-_]/g, ' '); 
+                    const description = repo.description || 'No description provided.';
+
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.innerHTML = `
+                        <div>
+                            <h3>${cleanTitle}</h3>
+                            <p>${description}</p>
+                        </div>
+                        <a href="${appUrl}" class="btn" target="_blank">Launch App →</a>
+                    `;
+                    grid.appendChild(card);
+                });
+
+            } catch (error) {
+                console.error(error);
+                grid.innerHTML = '<div class="loading" style="color: #cf222e;">Error loading apps dashboard. Please try again later.</div>';
+            }
+        }
+
+        // Initialize the fetch when the window loads
+        window.onload = fetchGitHubApps;
+    </script>
+</body>
+</html>
